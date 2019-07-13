@@ -66,7 +66,7 @@ stages:
               cmakeArgs: --build . --config $(build_type)
           - pwsh: |
               ctest -C $(build_type) --output-on-failure --no-compress-output -T Test
-              $xsl = "../ctest-to-junit.xsl"
+              $xsl = "../cicd/ctest-to-junit.xsl"
               $ctest_xml = (Get-ChildItem "Testing/*/Test.xml").FullName
               $junit_xml = "Testing/results-junit.xml"
               $xslt = New-Object System.Xml.Xsl.XslCompiledTransform
