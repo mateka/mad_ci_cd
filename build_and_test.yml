@@ -15,22 +15,22 @@ stages:
             linux_gcc_release:
               build_type: Release
               vm_image: 'ubuntu-16.04'
-              vcpkg_libs: '${linux_vcpkg_libraries}'
+              vcpkg_libs: ${{ parameters.linux_vcpkg_libraries }}
               cmake_additional_options: "-E env CXXFLAGS='--coverage' cmake"
             linux_gcc_debug:
               build_type: Debug
               vm_image: 'ubuntu-16.04'
-              vcpkg_libs: '${linux_vcpkg_libraries}'
+              vcpkg_libs: ${{ parameters.linux_vcpkg_libraries }}
               cmake_additional_options: "-E env CXXFLAGS='--coverage' cmake"
             windows_release:
               build_type: Release
               vm_image: 'windows-2019'
-              vcpkg_libs: '${windows_vcpkg_libraries}'
+              vcpkg_libs: ${{ parameters.windows_vcpkg_libraries }}
               cmake_additional_options: ''
             windows_debug:
               build_type: Debug
               vm_image: 'windows-2019'
-              vcpkg_libs: '${windows_vcpkg_libraries}'
+              vcpkg_libs: ${{ parameters.windows_vcpkg_libraries }}
               cmake_additional_options: ''
         pool:
           vmImage: $(vm_image)
@@ -75,8 +75,9 @@ stages:
             workingDirectory: $(Build.SourcesDirectory)/build
             displayName: Run tests
           - bash: |
-              for filename in `find .. | egrep '\.cpp'`; 
+              for filename in `find .. | egrep '\.cpp\.gcno'`; 
               do 
+                echo $filename;
                 gcov-5 -n -o . $filename > /dev/null; 
               done
               bash <(curl -s https://codecov.io/bash)
