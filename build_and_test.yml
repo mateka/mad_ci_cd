@@ -12,16 +12,16 @@ stages:
         strategy:
           maxParallel: 2
           matrix:
-            linux_gcc_release:
-              build_type: Release
-              vm_image: 'ubuntu-16.04'
-              vcpkg_libs: ${{ parameters.linux_vcpkg_libraries }}
-              cmake_additional_options: "-E env CXXFLAGS='--coverage' cmake"
+            # linux_gcc_release:
+            #   build_type: Release
+            #   vm_image: 'ubuntu-16.04'
+            #   vcpkg_libs: ${{ parameters.linux_vcpkg_libraries }}
+            #   cmake_additional_options: "-E env CXXFLAGS='--coverage' cmake"
             linux_gcc_debug:
               build_type: Debug
               vm_image: 'ubuntu-16.04'
               vcpkg_libs: ${{ parameters.linux_vcpkg_libraries }}
-              cmake_additional_options: "-E env CXXFLAGS='--coverage' cmake"
+              cmake_additional_options: "-E env CXXFLAGS='--coverage' cmake -DCMAKE_C_FLAGS_DEBUG='-g -O0 -DCMAKE_CXX_FLAGS_DEBUG='-g -O0'"
             windows_release:
               build_type: Release
               vm_image: 'windows-2019'
@@ -40,7 +40,7 @@ stages:
           - pwsh: |
               sudo add-apt-repository ppa:ubuntu-toolchain-r/test
               sudo apt-get update
-              sudo apt-get install cmake g++-8 python-setuptools python-dev build-essential
+              sudo apt-get install cmake g++-8 python-setuptools python-dev build-essential lcov gcovr
               sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 100
               sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100
               sudo pip install --upgrade pip
@@ -75,8 +75,11 @@ stages:
             workingDirectory: $(Build.SourcesDirectory)/build
             displayName: Run tests
           - bash: |
-              find . -name '*.gcno' -exec ../cicd/run_gcov.sh {} \;
-              bash <(curl -s https://codecov.io/bash)
+              lcov --version
+              lcov --directory . --capture --output-file coverage.info
+              lcov --remove coverage.info '/usr/*' --output-file coverage.info
+              lcov --list coverage.info
+              bash <(curl -s https://codecov.io/bash) -t $(CODECOV_TOKEN) || echo "Codecov did not collect coverage reports"
             workingDirectory: $(Build.SourcesDirectory)/build
             displayName: 'Calculate code coverage'
             condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
