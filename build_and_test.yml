@@ -75,11 +75,7 @@ stages:
             workingDirectory: $(Build.SourcesDirectory)/build
             displayName: Run tests
           - bash: |
-              for filename in `find .. | egrep '\.cpp\.gcno'`; 
-              do 
-                echo $filename;
-                gcov-5 -n -o . $filename > /dev/null; 
-              done
+              find . -name '*.gcno' -exec ../ci_cd/run_gcov.sh {} \;
               bash <(curl -s https://codecov.io/bash)
             workingDirectory: $(Build.SourcesDirectory)/build
             displayName: 'Calculate code coverage'
