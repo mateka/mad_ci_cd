@@ -12,22 +12,29 @@ stages:
         strategy:
           maxParallel: 2
           matrix:
-            # linux_gcc_release:
-            #   build_type: Release
-            #   vm_image: 'ubuntu-16.04'
-            #   vcpkg_libs: ${{ parameters.linux_vcpkg_libraries }}
+            linux_gcc_release:
+              build_type: Release
+              vm_image: 'ubuntu-16.04'
+              vcpkg_libs: ${{ parameters.linux_vcpkg_libraries }}
+              coverage: 'false'
             linux_gcc_debug:
               build_type: Debug
               vm_image: 'ubuntu-16.04'
               vcpkg_libs: ${{ parameters.linux_vcpkg_libraries }}
+              cmake_env: "\"-E env CFLAGS=\'-O0 -g --coverage\' CXXFLAGS=\'-O0 -g --coverage\' LDFLAGS=\'--coverage\' cmake\""
+              coverage: 'true'
             windows_release:
               build_type: Release
               vm_image: 'windows-2019'
               vcpkg_libs: ${{ parameters.windows_vcpkg_libraries }}
+              cmake_env: ''
+              coverage: 'false'
             windows_debug:
               build_type: Debug
               vm_image: 'windows-2019'
               vcpkg_libs: ${{ parameters.windows_vcpkg_libraries }}
+              cmake_env: ''
+              coverage: 'false'
         pool:
           vmImage: $(vm_image)
         variables:
@@ -55,14 +62,14 @@ stages:
           - task: CMake@1
             inputs:
               workingDirectory: build
-              cmakeArgs: -DCMAKE_TOOLCHAIN_FILE=$(vcpkg)/scripts/buildsystems/vcpkg.cmake $(Build.Repository.LocalPath)
+              cmakeArgs: $(cmake_env) -DCMAKE_TOOLCHAIN_FILE=$(vcpkg)/scripts/buildsystems/vcpkg.cmake $(Build.Repository.LocalPath)
           - task: CMake@1
             inputs:
               workingDirectory: build
               cmakeArgs: --build . --config $(build_type)
           - pwsh: |
               ctest -C $(build_type) --output-on-failure --no-compress-output -T Test
-              $xsl = "../cicd/coverage_config/ctest-to-junit.xsl"
+              $xsl = "../cicd/ctest-to-junit.xsl"
               $ctest_xml = (Get-ChildItem "Testing/*/Test.xml").FullName
               $junit_xml = "Testing/results-junit.xml"
               $xslt = New-Object System.Xml.Xsl.XslCompiledTransform
@@ -78,7 +85,7 @@ stages:
               bash <(curl -s https://codecov.io/bash) -t $(CODECOV_TOKEN) || echo "Codecov did not collect coverage reports"
             workingDirectory: $(Build.SourcesDirectory)/build
             displayName: 'Calculate code coverage'
-            condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
+            condition: and(succeeded(), and(eq(variables['Agent.OS'], 'Linux'), eq(variables['coverage'], 'true')))
           - task: PublishTestResults@2
             condition: succeededOrFailed()
             inputs:
