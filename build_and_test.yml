@@ -16,22 +16,18 @@ stages:
             #   build_type: Release
             #   vm_image: 'ubuntu-16.04'
             #   vcpkg_libs: ${{ parameters.linux_vcpkg_libraries }}
-            #   cmake_additional_options: "-E env CXXFLAGS='--coverage' cmake"
             linux_gcc_debug:
               build_type: Debug
               vm_image: 'ubuntu-16.04'
               vcpkg_libs: ${{ parameters.linux_vcpkg_libraries }}
-              cmake_additional_options: "-E env CXXFLAGS='--coverage' cmake -DCMAKE_C_FLAGS_DEBUG='-g -O0 -DCMAKE_CXX_FLAGS_DEBUG='-g -O0'"
             windows_release:
               build_type: Release
               vm_image: 'windows-2019'
               vcpkg_libs: ${{ parameters.windows_vcpkg_libraries }}
-              cmake_additional_options: ''
             windows_debug:
               build_type: Debug
               vm_image: 'windows-2019'
               vcpkg_libs: ${{ parameters.windows_vcpkg_libraries }}
-              cmake_additional_options: ''
         pool:
           vmImage: $(vm_image)
         variables:
@@ -59,14 +55,14 @@ stages:
           - task: CMake@1
             inputs:
               workingDirectory: build
-              cmakeArgs: $(cmake_additional_options) -DCMAKE_TOOLCHAIN_FILE=$(vcpkg)/scripts/buildsystems/vcpkg.cmake $(Build.Repository.LocalPath)
+              cmakeArgs: -DCMAKE_TOOLCHAIN_FILE=$(vcpkg)/scripts/buildsystems/vcpkg.cmake $(Build.Repository.LocalPath)
           - task: CMake@1
             inputs:
               workingDirectory: build
               cmakeArgs: --build . --config $(build_type)
           - pwsh: |
               ctest -C $(build_type) --output-on-failure --no-compress-output -T Test
-              $xsl = "../cicd/ctest-to-junit.xsl"
+              $xsl = "../cicd/coverage_config/ctest-to-junit.xsl"
               $ctest_xml = (Get-ChildItem "Testing/*/Test.xml").FullName
               $junit_xml = "Testing/results-junit.xml"
               $xslt = New-Object System.Xml.Xsl.XslCompiledTransform
